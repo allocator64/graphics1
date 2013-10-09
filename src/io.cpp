@@ -16,8 +16,8 @@ Image load_image(const char *path)
 
     Image res(in.TellHeight(), in.TellWidth());
 
-    for (uint i = 0; i < res.n_rows; ++i) {
-        for (uint j = 0; j < res.n_cols; ++j) {
+    for (int i = 0; i < res.n_rows; ++i) {
+        for (int j = 0; j < res.n_cols; ++j) {
             RGBApixel *p = in(j, i);
             res(i, j) = make_tuple(p->Red, p->Green, p->Blue);
         }
@@ -31,11 +31,11 @@ void save_image(const Image &im, const char *path)
     BMP out;
     out.SetSize(im.n_cols, im.n_rows);
 
-    uint r, g, b;
+    int r, g, b;
     RGBApixel p;
     p.Alpha = 255;
-    for (uint i = 0; i < im.n_rows; ++i) {
-        for (uint j = 0; j < im.n_cols; ++j) {
+    for (int i = 0; i < im.n_rows; ++i) {
+        for (int j = 0; j < im.n_cols; ++j) {
             tie(r, g, b) = im(i, j);
             p.Red = r; p.Green = g; p.Blue = b;
             out.SetPixel(j, i, p);

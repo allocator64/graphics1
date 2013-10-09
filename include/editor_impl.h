@@ -45,6 +45,16 @@ static RGB operator*(const RGB &l, const RGB &r)
 }
 
 template<typename MonochromeType>
+static RGB operator+(const RGB &l, const MonochromeType &r)
+{
+	return RGB(
+		get<0>(l) * r,
+		get<1>(l) * r,
+		get<2>(l) * r
+	);
+}
+
+template<typename MonochromeType>
 static RGB operator*(const RGB &l, const MonochromeType &r)
 {
 	return RGB(
@@ -52,6 +62,11 @@ static RGB operator*(const RGB &l, const MonochromeType &r)
 		get<1>(l) * r,
 		get<2>(l) * r
 	);
+}
+
+static bool operator<(const RGB &l, const Monochrome &r)
+{
+	return l < RGB(r, r, r);
 }
 
 static std::ostream &operator << (std::ostream &out, const RGB &e)
@@ -64,4 +79,24 @@ static Image custom(const Image &im, const KernelType &kernel)
 {
 	auto conv = ConvolutionFunctor<KernelType, RGB>(kernel);
 	return im.unary_map(conv);
+}
+
+template<typename ValueType>
+Matrix<ValueType> normalize(const Matrix<ValueType> &im, int t1 = 0, int t2 = 255)
+{
+    auto norm = NormalizeFunctor(t1, t2);
+    return im.unary_map(norm);
+}
+
+template<typename ValueType>
+std::vector<Matrix<ValueType>> split_image(const Matrix<ValueType> &im)
+{
+	auto rows = im.n_rows / 3;
+	auto cols = im.n_cols;
+
+	return std::vector<Matrix<ValueType>>({
+		im.submatrix(0, 0, rows, cols),
+		im.submatrix(rows, 0, rows, cols),
+		im.submatrix(2 * rows, 0, rows, cols),
+	});
 }

@@ -8,19 +8,18 @@
 #include <string>
 #include <type_traits>
 
-typedef unsigned int uint;
-
 template<typename ValueT>
 class Matrix
 {
 public:
+    typedef ValueT value_type;
     // Number of rows
-    const uint n_rows;
+    const int n_rows;
     // Number of cols
-    const uint n_cols;
+    const int n_cols;
 
     // Construct matrix with row_count of rows and col_count of columns
-    Matrix(uint row_count=0, uint col_count=0);
+    Matrix(int row_count=0, int col_count=0);
 
     // Construct and initialize matrix which consists of one row.
     //
@@ -57,11 +56,11 @@ public:
     // Const for just taking value:
     // Matrix<int> a = {9, 8, 7};
     // int i = a(0, 2); // i = 7;
-    const ValueT &operator() (uint row, uint col) const;
+    const ValueT &operator() (int row, int col) const;
     // Non-const for assignment
     // a(0, 1) = 3;
     // cout << a; // 9 3 7
-    ValueT &operator() (uint row, uint col);
+    ValueT &operator() (int row, int col);
 
     // Matrix convolution.
     //
@@ -99,10 +98,6 @@ public:
     //
     // This function isn't implemented, if you understood unary_map, using its
     // code you can easily implement binary_map.
-    template<typename BinaryMatrixOperator>
-    friend Matrix<ValueT> binary_map(const BinaryMatrixOperator&,
-                                     const Matrix<ValueT>&,
-                                     const Matrix<ValueT>&);
 
     // Get sumbmatrix of matrix
     // Remember that indexing starts at 0!
@@ -113,15 +108,15 @@ public:
     // Matrix<int> a = { {1, 2, 3},
     //                   {4, 5, 6} };
     // cout << a.submatrix(1, 1, 1, 2); // 5 6
-    const Matrix<ValueT> submatrix(uint prow, uint pcol,
-                                   uint rows, uint cols) const;
+    const Matrix<ValueT> submatrix(int prow, int pcol,
+                                   int rows, int cols) const;
 
 private:
     // Stride - number of elements between two rows (needed for efficient
     // submatrix function without memory copy)
-    const uint stride;
+    const int stride;
     // First row and col, useful for taking submatrices. By default is (0, 0).
-    const uint pin_row, pin_col;
+    const int pin_row, pin_col;
     // shared_ptr still has no support of c-style arrays and
     // <type[]> partial specialization like unique_ptr has.
     // works: unique_ptr<int[]>; doesn't: shared_ptr<int[]>.
@@ -141,14 +136,20 @@ std::ostream &operator << (std::ostream &out, const Matrix<ValueT> &m)
         out << "empty matrix" << std::endl;
         return out;
     }
-    for (uint i = 0; i < m.n_rows; ++i) {
-        for (uint j = 0; j < m.n_cols; ++j) {
+    for (int i = 0; i < m.n_rows; ++i) {
+        for (int j = 0; j < m.n_cols; ++j) {
             out << m(i, j) << " ";
         }
         out << std::endl;
     }
     return out;
 }
+
+template<typename ValueT, typename ValueT2, typename BinaryMatrixOperator>
+Matrix<typename std::result_of<BinaryMatrixOperator(Matrix<ValueT>, Matrix<ValueT2>)>::type>
+binary_map(const BinaryMatrixOperator&,
+                                 const Matrix<ValueT>&,
+                                 const Matrix<ValueT2>&);
 
 // Implementation of Matrix class
 #include "matrix.hpp"

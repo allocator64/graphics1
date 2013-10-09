@@ -4,6 +4,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <limits>
+#include <iterator>
 
 using std::string;
 using std::stringstream;
@@ -14,6 +15,7 @@ using std::numeric_limits;
 
 #include "io.h"
 #include "matrix.h"
+#include "editor.h"
 
 void print_help(const char *argv0)
 {
@@ -92,10 +94,23 @@ void check_argc(int argc, int from, int to=numeric_limits<int>::max())
         throw string("too many arguments for operation");
 }
 
-Matrix<double> parse_kernel(string kernel)
+Matrix<double> parse_kernel(string s)
 {
-    // Kernel parsing implementation here
-    return Matrix<double>(0, 0);
+    for (int i = 0; i < s.size(); ++i)
+        if (s[i] == ';' || s[i] == ',')
+            s[i] = ' ';
+    vector<double> v;
+    stringstream ss(s);
+    copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(v));
+    int n = pow(v.size(), .5);
+    if (n * n != v.size())
+        throw string("Only square kernel supported in this version");
+    auto it = v.begin();
+    Matrix<double> kernel(n, n);
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+            kernel(i, j) = *it++;
+    return kernel;
 }
 
 int main(int argc, char **argv)
@@ -114,23 +129,23 @@ int main(int argc, char **argv)
 
         if (action == "--sobel-x") {
             check_argc(argc, 4, 4);
-            // dst_image = sobel_x(src_image);
+            dst_image = sobel_x(src_image);
         } else if (action == "--sobel-y") {
             check_argc(argc, 4, 4);
-            // dst_image = sobel_y(src_image);
+            dst_image = sobel_y(src_image);
         } else if (action == "--unsharp") {
             check_argc(argc, 4, 4);
-            // dst_image = unsharp(src_image);
+            dst_image = unsharp(src_image);
         } else if (action == "--gray-world") {
             check_argc(argc, 4, 4);
-            // dst_image = gray_world(src_image);
+            dst_image = gray_world(src_image);
         } else if (action == "--resize") {
             check_argc(argc, 5, 5);
-            //double scale = read_value<double>(argv[4]);
-            // dst_image = resize(src_image, scale);
-        }  else if (action == "--custom") {
+            double scale = read_value<double>(argv[4]);
+            dst_image = resize(src_image, scale);
+        } else if (action == "--custom") {
             check_argc(argc, 5, 5);
-            // Matrix<double> kernel = parse_kernel(argv[4]);
+            Matrix<double> kernel = parse_kernel(argv[4]);
             // Function custom is useful for making concrete linear filtrations
             // like gaussian or sobel. So, we assume that you implement custom
             // and then implement concrete filtrations using this function.
@@ -141,7 +156,7 @@ int main(int argc, char **argv)
             //                             {-1, 0, 1}};
             //    return custom(src_image, kernel);
             // }
-            // dst_image = custom(src_image, kernel);
+            dst_image = normalize(custom(src_image, kernel));
         } else if (action == "--autocontrast") {
             check_argc(argc, 4, 5);
             double fraction = 0.0;
@@ -149,7 +164,7 @@ int main(int argc, char **argv)
                 fraction = read_value<double>(argv[4]);
                 check_number("fraction", fraction, 0.0, 0.4);
             }
-            // dst_image = autocontrast(src_image, fraction);
+            dst_image = autocontrast(src_image, fraction);
         } else if (action == "--gaussian" || action == "--gaussian-separable") {
             check_argc(argc, 5, 6);
             double sigma = read_value<double>(argv[4]);
@@ -160,9 +175,9 @@ int main(int argc, char **argv)
                 check_number("radius", radius, 1);
             }
             if (action == "--gaussian") {
-                // dst_image = gaussian(src_image, sigma, radius);
+                dst_image = gaussian(src_image, sigma, radius);
             } else {
-                // dst_image = gaussian_separable(src_image, sigma, radius);
+                dst_image = gaussian_separable(src_image, sigma, radius);
             }
         } else if (action == "--canny") {
             check_argc(6, 6);
@@ -172,7 +187,7 @@ int main(int argc, char **argv)
             check_number("threshold2", threshold2, 0, 360);
             if (threshold1 >= threshold2)
                 throw string("threshold1 must be less than threshold2");
-            // dst_image = canny(src_image, threshold1, threshold2);
+            dst_image = canny(src_image, threshold1, threshold2);
         } else if (action == "--align") {
             check_argc(argc, 4, 6);
             if (argc == 5) {
@@ -180,7 +195,7 @@ int main(int argc, char **argv)
                 if (postprocessing == "--gray-world" ||
                     postprocessing == "--unsharp") {
                     check_argc(argc, 5, 5);
-                    // dst_image = align(src_image, postprocessing);
+                    dst_image = align(src_image, postprocessing);
                 } else if (postprocessing == "--autocontrast") {
                     double fraction = 0.0;
                     if (argc == 6) {
@@ -192,7 +207,7 @@ int main(int argc, char **argv)
                     throw string("unknown align option ") + postprocessing;
                 }
             } else {
-                // dst_image = align(src_image);
+                dst_image = align(src_image);
             }
         } else {
             throw string("unknown action ") + action;

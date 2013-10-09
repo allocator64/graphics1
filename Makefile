@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -O2 -g -Wall -std=c++0x
 
 # Strict compiler options
-CXXFLAGS += -Werror -Wformat-security -Wignored-qualifiers -Winit-self \
+CXXFLAGS += -Wformat-security -Wignored-qualifiers -Winit-self \
 		-Wswitch-default -Wfloat-equal -Wshadow -Wpointer-arith \
 		-Wtype-limits -Wempty-body -Wlogical-op \
 		-Wmissing-field-initializers -Wctor-dtor-privacy \
@@ -77,7 +77,7 @@ bridge.touch: $(wildcard $(BRIDGE_INCLUDE_DIR)/*) \
 $(BIN_DIR)/matrix_example: $(OBJ_DIR)/matrix_example.o $(OBJ_DIR)/io.o bridge.touch
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
 
-$(BIN_DIR)/main: $(OBJ_DIR)/main.o $(OBJ_DIR)/io.o bridge.touch
+$(BIN_DIR)/main: $(OBJ_DIR)/main.o $(OBJ_DIR)/editor.o $(OBJ_DIR)/io.o bridge.touch
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
 
 # Pattern for generating dependency description files (*.d)

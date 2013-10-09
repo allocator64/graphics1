@@ -16,12 +16,12 @@ using std::make_tuple;
 class BoxFilterOp
 {
 public:
-    tuple<uint, uint, uint> operator () (const Image &m) const
+    tuple<int, int, int> operator () (const Image &m) const
     {
-        uint size = 2 * radius + 1;
-        uint r, g, b, sum_r = 0, sum_g = 0, sum_b = 0;
-        for (uint i = 0; i < size; ++i) {
-            for (uint j = 0; j < size; ++j) {
+        int size = 2 * radius + 1;
+        int r, g, b, sum_r = 0, sum_g = 0, sum_b = 0;
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
                 // Tie is useful for taking elements from tuple
                 tie(r, g, b) = m(i, j);
                 sum_r += r;
@@ -41,7 +41,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    // Image = Matrix<tuple<uint, uint, uint>>
+    // Image = Matrix<tuple<int, int, int>>
     // tuple is from c++ 11 standard
     Image img = load_image(argv[1]);
     Image img3;

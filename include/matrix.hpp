@@ -7,7 +7,7 @@ T& Matrix<ValueT>::make_rw(const T& val) const
 }
 
 template<typename ValueT>
-Matrix<ValueT>::Matrix(uint row_count, uint col_count):
+Matrix<ValueT>::Matrix(int row_count, int col_count):
     n_rows{row_count},
     n_cols{col_count},
     stride{n_cols},
@@ -39,8 +39,8 @@ template<typename ValueT>
 Matrix<ValueT> Matrix<ValueT>::deep_copy() const
 {
     Matrix<ValueT> tmp(n_rows, n_cols);
-    for (uint i = 0; i < n_rows; ++i)
-        for (uint j = 0; j < n_cols; ++j)
+    for (int i = 0; i < n_rows; ++i)
+        for (int j = 0; j < n_cols; ++j)
             tmp(i, j) = (*this)(i, j);
     return tmp;
 }
@@ -82,7 +82,7 @@ Matrix<ValueT>::Matrix(std::initializer_list<std::initializer_list<ValueT>> lsts
         };
         // checking that all row sizes are equal.
         if (not std::all_of(lsts.begin(), lsts.end(), chk_length))
-            throw std::string("Initialization rows must have equal length");
+            __builtin_trap();// std::string("Initialization rows must have equal length");
     }
 
     if (n_cols == 0)
@@ -134,20 +134,20 @@ Matrix<ValueT>::Matrix(Matrix &&src):
 
 
 template<typename ValueT>
-ValueT &Matrix<ValueT>::operator()(uint row, uint col)
+ValueT &Matrix<ValueT>::operator()(int row, int col)
 {
     if (row >= n_rows or col >= n_cols)
-        throw std::string("Out of bounds");
+        __builtin_trap();// std::string("Out of bounds");
     row += pin_row;
     col += pin_col;
     return _data.get()[row * stride + col];
 }
 
 template<typename ValueT>
-const ValueT &Matrix<ValueT>::operator()(uint row, uint col) const
+const ValueT &Matrix<ValueT>::operator()(int row, int col) const
 {
     if (row >= n_rows or col >= n_cols)
-        throw std::string("Out of bounds");
+        __builtin_trap();// std::string("Out of bounds");
     row += pin_row;
     col += pin_col;
     return _data.get()[row * stride + col];
@@ -158,11 +158,11 @@ Matrix<ValueT>::~Matrix()
 {}
 
 template<typename ValueT>
-const Matrix<ValueT> Matrix<ValueT>::submatrix(uint prow, uint pcol,
-                                               uint rows, uint cols) const
+const Matrix<ValueT> Matrix<ValueT>::submatrix(int prow, int pcol,
+                                               int rows, int cols) const
 {
     if (prow + rows > n_rows or pcol + cols > n_cols)
-        throw std::string("Out of bounds");
+        __builtin_trap();// std::string("Out of bounds");
     // copying requested data to submatrix.
     Matrix<ValueT> tmp(*this);
     make_rw(tmp.n_rows) = rows;
@@ -193,8 +193,8 @@ Matrix<ValueT>::unary_map(const UnaryMatrixOperator &op) const
     const auto end_j = n_cols - radius;
 
 
-    for (uint i = start_i; i < end_i; ++i) {
-        for (uint j = start_j; j < end_j; ++j) {
+    for (int i = start_i; i < end_i; ++i) {
+        for (int j = start_j; j < end_j; ++j) {
             auto neighbourhood = submatrix(i - radius, j - radius, size, size);
             tmp(i, j) = op(neighbourhood);
         }
@@ -222,10 +222,44 @@ Matrix<ValueT>::unary_map(UnaryMatrixOperator &op) const
     const auto end_j = n_cols - radius;
 
 
-    for (uint i = start_i; i < end_i; ++i) {
-        for (uint j = start_j; j < end_j; ++j) {
+    for (int i = start_i; i < end_i; ++i) {
+        for (int j = start_j; j < end_j; ++j) {
             auto neighbourhood = submatrix(i - radius, j - radius, size, size);
             tmp(i, j) = op(neighbourhood);
+        }
+    }
+    return tmp;
+}
+
+template<typename ValueT, typename ValueT2, typename BinaryMatrixOperator>
+Matrix<typename std::result_of<BinaryMatrixOperator(Matrix<ValueT>, Matrix<ValueT2>)>::type>
+binary_map(const BinaryMatrixOperator &op, const Matrix<ValueT> &left, const Matrix<ValueT2> &right)
+{
+    typedef typename std::result_of<BinaryMatrixOperator(Matrix<ValueT>, Matrix<ValueT2>)>::type ReturnT;
+    if (
+        left.n_cols != right.n_cols ||
+        left.n_rows != right.n_rows
+    )
+        __builtin_trap();// std::string("binary_map: Matrices must be same size");
+    if (left.n_cols * left.n_rows == 0)
+        return Matrix<ReturnT>(0, 0);
+
+    Matrix<ReturnT> tmp(left.n_rows, left.n_cols);
+
+    const auto radius = op.radius;
+    const auto size = 2 * radius + 1;
+
+    const auto start_i = radius;
+    const auto end_i = left.n_rows - radius;
+    const auto start_j = radius;
+    const auto end_j = left.n_cols - radius;
+
+
+    for (int i = start_i; i < end_i; ++i) {
+        for (int j = start_j; j < end_j; ++j) {
+            auto neighbourhood_left = left.submatrix(i - radius, j - radius, size, size);
+            auto neighbourhood_right = right.submatrix(i - radius, j - radius, size, size);
+            tmp(i, j) = op(neighbourhood_left, neighbourhood_right);
         }
     }
     return tmp;
