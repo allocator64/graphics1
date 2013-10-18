@@ -9,10 +9,8 @@ typedef int Monochrome;
 typedef Matrix<Monochrome> MonochromeImage;
 
 static RGB operator+(const RGB &l, const RGB &r);
-static RGB operator*(const RGB &l, const RGB &r);
 template<typename MonochromeType>
 static RGB operator*(const RGB &l, const MonochromeType &r);
-static std::ostream &operator << (std::ostream &out, const RGB &e);
 
 template<typename ValueType>
 std::vector<Matrix<ValueType>> split_image(const Matrix<ValueType> &im);
@@ -21,7 +19,7 @@ Image gaussian_separable(const Image &im, double sigma, int radius);
 Image sobel_x(const Image &im);
 Image sobel_y(const Image &im);
 Image canny(const Image &im, int threshold1, int threshold2);
-Image align(const Image &im, const string &postprocessing = "");
+Image align(const Image &im, const string &postprocessing = "", double fraction = 0);
 Image gray_world(const Image &im);
 Image unsharp(const Image &im);
 Image autocontrast(const Image &im, double fraction);
@@ -77,7 +75,7 @@ public:
 	}
 	const int threshold1;
 	const int threshold2;
-	static const int radius = 1;	
+	static const int radius = 0;	
 };
 
 template<typename ValueType>

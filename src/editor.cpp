@@ -267,7 +267,6 @@ void hysteresis_dsu(InputType &abs_grad)
 	auto exist = [&](int i, int j){ return 0 <= i && i < abs_grad.n_rows && 0 <= j && j < abs_grad.n_cols;};
 	auto check = [&](int i, int j){ return exist(i, j) && (abs_grad(i, j) >= 128);};
 	auto strong = [&](int i, int j){ return exist(i, j) && (abs_grad(i, j) == 255);};
-	auto f = [&](int i, int j){ return i * abs_grad.n_cols + j;};
 	vector<vector<int>> groups(abs_grad.n_rows, vector<int>(abs_grad.n_cols));
 	int count = 0;
 	for (int i = 0; i < abs_grad.n_rows; ++i)
@@ -277,7 +276,7 @@ void hysteresis_dsu(InputType &abs_grad)
 			bool B = check(i, j - 1);
 			if (!A)
 				continue;
-			int current;
+			int current = 0;
 			if (!B && !C) {
 				current = count++;
 				dsu.make_set(current);
@@ -325,27 +324,48 @@ Image canny(const Image &im, int threshold1, int threshold2)
 }
 
 template<typename MetricType>
-static void match(MonochromeImage &r, MonochromeImage &g, MetricType metric)
+static pair<int, int> match(MonochromeImage &r, MonochromeImage &g, MetricType metric, int i = 0, int j = 0, int rd = 15)
 {
 	vector<pair<double, pair<int, int>>> v;
-	for (int di = -15; di <= 15; ++di)
-		for (int dj = -15; dj <= 15; ++dj) {
-			MonochromeImage r_ = r.submatrix(max(0, di), max(0, dj), min(r.n_rows, g.n_rows + di) - max(0, di), min(r.n_cols, g.n_cols + dj) - max(0, dj));
-			MonochromeImage g_ = g.submatrix(max(0, -di), max(0, -dj), min(g.n_rows, r.n_rows - di) - max(0, -di), min(g.n_cols, r.n_cols - dj) - max(0, -dj));
-			assert(r_.n_cols == g_.n_cols);
-			assert(r_.n_rows == g_.n_rows);
-			v.push_back(make_pair(metric(r_, g_), make_pair(di, dj)));
+	for (int di = -rd; di <= rd; ++di)
+		for (int dj = -rd; dj <= rd; ++dj) {
+			MonochromeImage r_ = r.submatrix(max(0, di + i), max(0, dj + j), min(r.n_rows, g.n_rows + di + i) - max(0, di + i), min(r.n_cols, g.n_cols + dj + j) - max(0, dj + j));
+			MonochromeImage g_ = g.submatrix(max(0, -di + i), max(0, -dj + j), min(g.n_rows, r.n_rows - di + i) - max(0, -di + i), min(g.n_cols, r.n_cols - dj + j) - max(0, -dj + j));
+			v.push_back(make_pair(metric(r_, g_), make_pair(di + i, dj + j)));
 		}
 	sort(v.begin(), v.end());
-	int row_shift = v[0].second.first;
-	int col_shift = v[0].second.second;
+	return v[0].second;
+}
+
+template<typename MetricType>
+pair<int, int> scale_match(MonochromeImage &l, MonochromeImage &r, MetricType metric)
+{
+	fprintf(stderr, "%u x %u\n", l.n_rows, l.n_cols);
+	if (l.n_rows < 400 && l.n_cols < 400) {
+		return match(l, r, metric);
+	} else {
+		auto L = ImageToMonochrome(resize(MonochromeToImage(l), 0.5));
+		auto R = ImageToMonochrome(resize(MonochromeToImage(r), 0.5));
+		auto shift = scale_match(L, R, metric);
+		shift.first *= 2;
+		shift.second *= 2;
+		return match(l, r, metric, shift.first, shift.second, 2);
+	}
+}
+
+template<typename MetricType>
+void normal_match(MonochromeImage &r, MonochromeImage &g, MetricType metric)
+{
+	auto shift = scale_match(r, g, metric);
+	int row_shift = shift.first;
+	int col_shift = shift.second;
 	MonochromeImage r_ = r.submatrix(max(0, row_shift), max(0, col_shift), min(r.n_rows, g.n_rows + row_shift) - max(0, row_shift), min(r.n_cols, g.n_cols + col_shift) - max(0, col_shift));
 	MonochromeImage g_ = g.submatrix(max(0, -row_shift), max(0, -col_shift), min(g.n_rows, r.n_rows - row_shift) - max(0, -row_shift), min(g.n_cols, r.n_cols - col_shift) - max(0, -col_shift));
 	r = r_;
 	g = g_;
 }
 
-Image align(const Image &image, const string &postprocessing)
+Image align(const Image &image, const string &postprocessing, double fraction)
 {
 	auto tmp = split_image(image);
 	for (auto &im : tmp) {
@@ -402,7 +422,7 @@ Image align(const Image &image, const string &postprocessing)
 		return sum;
 	};
 
-	auto cc = [](MonochromeImage &im1, MonochromeImage &im2) {
+	auto cc __attribute__((unused)) = [](MonochromeImage &im1, MonochromeImage &im2) {
 		double sum = 0;
 		for (int i = 0; i < im1.n_rows; ++i)
 			for (int j = 0; j < im2.n_cols; ++j)
@@ -411,9 +431,9 @@ Image align(const Image &image, const string &postprocessing)
 		return sum;
 	};
 
-	match(r, g, mse);
-	match(r, b, mse);
-	match(b, g, mse);
+	normal_match(r, g, mse);
+	normal_match(r, b, mse);
+	normal_match(b, g, mse);
 
 	auto result = MonochromeToImage(r);
 
@@ -431,6 +451,8 @@ Image align(const Image &image, const string &postprocessing)
 		result = gray_world(result);
 	else if (postprocessing == "--unsharp")
 		result = unsharp(result);
+	else if (postprocessing == "--autocontrast")
+		result = autocontrast(result, fraction);
 	return result;
 }
 

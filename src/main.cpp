@@ -96,14 +96,14 @@ void check_argc(int argc, int from, int to=numeric_limits<int>::max())
 
 Matrix<double> parse_kernel(string s)
 {
-    for (int i = 0; i < s.size(); ++i)
+    for (int i = 0; i < int(s.size()); ++i)
         if (s[i] == ';' || s[i] == ',')
             s[i] = ' ';
     vector<double> v;
     stringstream ss(s);
     copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(v));
     int n = pow(v.size(), .5);
-    if (n * n != v.size())
+    if (n * n != int(v.size()))
         throw string("Only square kernel supported in this version");
     auto it = v.begin();
     Matrix<double> kernel(n, n);
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
                         fraction = read_value<double>(argv[5]);
                         check_number("fraction", fraction, 0.0, 0.4);
                     }
-                    // dst_image = align(src_image, postprocessing, fraction);
+                    dst_image = align(src_image, postprocessing, fraction);
                 } else {
                     throw string("unknown align option ") + postprocessing;
                 }

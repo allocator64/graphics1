@@ -35,15 +35,6 @@ static RGB operator+(const RGB &l, const RGB &r)
 	);
 }
 
-static RGB operator*(const RGB &l, const RGB &r)
-{
-	return RGB(
-		get<0>(l) * get<0>(r),
-		get<1>(l) * get<1>(r),
-		get<2>(l) * get<2>(r)
-	);
-}
-
 template<typename MonochromeType>
 static RGB operator+(const RGB &l, const MonochromeType &r)
 {
@@ -62,16 +53,6 @@ static RGB operator*(const RGB &l, const MonochromeType &r)
 		get<1>(l) * r,
 		get<2>(l) * r
 	);
-}
-
-static bool operator<(const RGB &l, const Monochrome &r)
-{
-	return l < RGB(r, r, r);
-}
-
-static std::ostream &operator << (std::ostream &out, const RGB &e)
-{
-	return out << get<0>(e) << " " << get<1>(e) << " " << get<2>(e);
 }
 
 template <typename KernelType>
