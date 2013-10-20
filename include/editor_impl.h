@@ -2,10 +2,35 @@
 
 #include <cmath>
 #include <iostream>
+
 using namespace std;
 
-template<typename KernelType, typename ReturnType>
-ConvolutionFunctor<KernelType, ReturnType>\
+template<typename LeftType, typename RightType>
+static
+tuple<LeftType,LeftType,LeftType>
+operator+(const tuple<LeftType,LeftType,LeftType> &l, const tuple<RightType,RightType,RightType> &r)
+{
+	return tuple<LeftType,LeftType,LeftType>(
+		get<0>(l) + get<0>(r),
+		get<1>(l) + get<1>(r),
+		get<2>(l) + get<2>(r)
+	);
+}
+
+template<typename LeftType, typename RightType>
+static
+tuple<LeftType,LeftType,LeftType>
+operator*(const LeftType &l, const tuple<RightType,RightType,RightType> &r)
+{
+	return tuple<LeftType,LeftType,LeftType>(
+		l * get<0>(r),
+		l * get<1>(r),
+		l * get<2>(r)
+	);
+}
+
+template<typename KernelType>
+ConvolutionFunctor<KernelType>\
 	::ConvolutionFunctor(const KernelType &k_)
 	:kernel(k_),
 	 diameter(max(k_.n_rows, k_.n_cols)),
@@ -14,51 +39,28 @@ ConvolutionFunctor<KernelType, ReturnType>\
 	 radius(diameter / 2)
 {}
 
-template<typename KernelType, typename ReturnType>
-template<typename InputType>
-ReturnType ConvolutionFunctor<KernelType, ReturnType>\
-	::operator()(const InputType &f)
+template<typename KernelType>
+RGB ConvolutionFunctor<KernelType>\
+	::operator()(const Image &f)
 {
-	ReturnType sum = ReturnType();
+	typedef typename KernelType::value_type value_type;
+	tuple<value_type, value_type, value_type> sum;
 	for (int i = 0; i < kernel.n_rows; ++i)
-		for (int j = 0; j < kernel.n_cols; ++j)
-			sum = sum + (f(i + row_shift, j + col_shift) * kernel(i, j));
-	return sum;
-}
-
-static RGB operator+(const RGB &l, const RGB &r)
-{
+		for (int j = 0; j < kernel.n_cols; ++j) {
+			auto tmp = kernel(i, j) * f(i + row_shift, j + col_shift);
+			sum = sum + tmp;
+		}
 	return RGB(
-		get<0>(l) + get<0>(r),
-		get<1>(l) + get<1>(r),
-		get<2>(l) + get<2>(r)
-	);
-}
-
-template<typename MonochromeType>
-static RGB operator+(const RGB &l, const MonochromeType &r)
-{
-	return RGB(
-		get<0>(l) * r,
-		get<1>(l) * r,
-		get<2>(l) * r
-	);
-}
-
-template<typename MonochromeType>
-static RGB operator*(const RGB &l, const MonochromeType &r)
-{
-	return RGB(
-		get<0>(l) * r,
-		get<1>(l) * r,
-		get<2>(l) * r
+		round(get<0>(sum)),
+		round(get<1>(sum)),
+		round(get<2>(sum))
 	);
 }
 
 template <typename KernelType>
 static Image custom(const Image &im, const KernelType &kernel)
 {
-	auto conv = ConvolutionFunctor<KernelType, RGB>(kernel);
+	auto conv = ConvolutionFunctor<KernelType>(kernel);
 	return im.unary_map(conv);
 }
 

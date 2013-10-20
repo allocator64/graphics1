@@ -8,10 +8,6 @@ typedef tuple<int, int, int> RGB;
 typedef int Monochrome;
 typedef Matrix<Monochrome> MonochromeImage;
 
-static RGB operator+(const RGB &l, const RGB &r);
-template<typename MonochromeType>
-static RGB operator*(const RGB &l, const MonochromeType &r);
-
 template<typename ValueType>
 std::vector<Matrix<ValueType>> split_image(const Matrix<ValueType> &im);
 Image gaussian(const Image &im, double sigma, int radius);
@@ -31,14 +27,13 @@ Image MonochromeToImage(const Matrix<Monochrome> &im);
 template <typename KernelType>
 static Image custom(const Image &im, const KernelType &kernel);
 
-template<typename KernelType, typename ReturnType>
+template<typename KernelType>
 class ConvolutionFunctor
 {
 public:
 	ConvolutionFunctor(const KernelType &k_);
 
-	template<typename InputType>
-	ReturnType operator()(const InputType &f);
+	RGB operator()(const Image &f);
 
 private:
 	const KernelType &kernel;

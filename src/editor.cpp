@@ -9,15 +9,6 @@ static inline ValueType pow_2(ValueType val)
 	return val * val;
 }
 
-// static inline RGB pow(const RGB &l, double r)
-// {
-// 	return RGB(
-// 		pow(get<0>(l), r),
-// 		pow(get<1>(l), r),
-// 		pow(get<2>(l), r)
-// 	);
-// }
-
 Matrix<Monochrome> ImageToMonochrome(const Image &im)
 {
 	Matrix<Monochrome> result(im.n_rows, im.n_cols);
@@ -455,6 +446,14 @@ Image align(const Image &image, const string &postprocessing, double fraction)
 	return result;
 }
 
+static int cmp(double l, double r)
+{
+	double tmp = l - r;
+	if (fabs(tmp) < 1e-9)
+		return 0;
+	return tmp > 0 ? l : r;
+}
+
 Image gray_world(const Image &im)
 {
 	Image result(im.n_rows, im.n_cols);
@@ -474,9 +473,9 @@ Image gray_world(const Image &im)
 	for (int i = 0; i < im.n_rows; ++i)
 		for (int j = 0; j < im.n_cols; ++j)
 			result(i, j) = RGB(
-				s * get<0>(im(i, j)) / Sr,
-				s * get<1>(im(i, j)) / Sg,
-				s * get<2>(im(i, j)) / Sb
+				cmp(Sr, 0) ? s * get<0>(im(i, j)) / Sr : 0,
+				cmp(Sg, 0) ? s * get<1>(im(i, j)) / Sg : 0,
+				cmp(Sb, 0) ? s * get<2>(im(i, j)) / Sb : 0
 			);
 	return normalize(result);
 }
