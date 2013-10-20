@@ -17,7 +17,7 @@ Matrix<ValueT>::Matrix(int row_count, int col_count):
 {
     auto size = n_cols * n_rows;
     if (size)
-        _data.reset(new ValueT[size], std::default_delete<ValueT[]>());
+        _data.reset(new ValueT[size](), std::default_delete<ValueT[]>());
 }
 
 template<typename ValueT>
@@ -30,7 +30,7 @@ Matrix<ValueT>::Matrix(std::initializer_list<ValueT> lst):
     _data{}
 {
     if (n_cols) {
-        _data.reset(new ValueT[n_cols], std::default_delete<ValueT[]>());
+        _data.reset(new ValueT[n_cols](), std::default_delete<ValueT[]>());
         std::copy(lst.begin(), lst.end(), _data.get());
     }
 }
@@ -78,7 +78,7 @@ Matrix<ValueT>::Matrix(std::initializer_list<std::initializer_list<ValueT>> lsts
     {
         auto local_n_cols = n_cols;
         auto chk_length = [local_n_cols](const std::initializer_list<ValueT> &l) {
-            return l.size() == local_n_cols;
+            return int(l.size()) == local_n_cols;
         };
         // checking that all row sizes are equal.
         if (not std::all_of(lsts.begin(), lsts.end(), chk_length))
@@ -89,7 +89,7 @@ Matrix<ValueT>::Matrix(std::initializer_list<std::initializer_list<ValueT>> lsts
         return;
 
     // allocating matrix memory.
-    _data.reset(new ValueT[n_cols * n_rows], std::default_delete<ValueT[]>());
+    _data.reset(new ValueT[n_cols * n_rows](), std::default_delete<ValueT[]>());
 
     // copying matrix data.
     {

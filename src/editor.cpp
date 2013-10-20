@@ -340,8 +340,7 @@ static pair<int, int> match(MonochromeImage &r, MonochromeImage &g, MetricType m
 template<typename MetricType>
 pair<int, int> scale_match(MonochromeImage &l, MonochromeImage &r, MetricType metric)
 {
-	fprintf(stderr, "%u x %u\n", l.n_rows, l.n_cols);
-	if (l.n_rows < 400 && l.n_cols < 400) {
+	if (l.n_rows < 4000 && l.n_cols < 4000) {
 		return match(l, r, metric);
 	} else {
 		auto L = ImageToMonochrome(resize(MonochromeToImage(l), 0.5));

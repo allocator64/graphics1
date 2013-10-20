@@ -96,20 +96,44 @@ void check_argc(int argc, int from, int to=numeric_limits<int>::max())
 
 Matrix<double> parse_kernel(string s)
 {
-    for (int i = 0; i < int(s.size()); ++i)
-        if (s[i] == ';' || s[i] == ',')
-            s[i] = ' ';
-    vector<double> v;
-    stringstream ss(s);
-    copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(v));
-    int n = pow(v.size(), .5);
-    if (n * n != int(v.size()))
-        throw string("Only square kernel supported in this version");
-    auto it = v.begin();
-    Matrix<double> kernel(n, n);
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j)
-            kernel(i, j) = *it++;
+    vector<vector<double>> v;
+    unsigned it = 0;
+    unsigned shift = 0;
+    enum {UNDEF, SYMBOL, VALUE} last = UNDEF;
+    while (it < s.size()) {
+        vector<double> cur;
+        while (it < s.size()) {
+            double val = 0;
+            if (sscanf(s.c_str() + it, "%lf%n", &val, &shift) != 1)
+                throw string("Unexpected character");
+            it += shift;
+            cur.push_back(val);
+            last = VALUE;
+            if (it < s.size()) {
+                if (!(s[it] == ',' || s[it] == ';'))
+                    throw string("Unexpected character");
+                last = SYMBOL;
+                if (it < s.size() && s[it] == ';')
+                    break;
+            }
+            ++it;
+        }
+        v.push_back(move(cur));
+        if (v.size() > 1) {
+            if (v.back().size() != v[v.size() - 2].size())
+                throw string("Not a right rectangle");
+        }
+        ++it;
+    }
+    if (v.empty())
+        throw string("Empty argument");
+    if (last != VALUE)
+        throw string("Must ends with value");
+
+    Matrix<double> kernel(v.size(), v.back().size());
+    for (int i = 0; i < kernel.n_rows; ++i)
+        for (int j = 0; j < kernel.n_cols; ++j)
+            kernel(i, j) = v[i][j];
     return kernel;
 }
 
@@ -129,10 +153,10 @@ int main(int argc, char **argv)
 
         if (action == "--sobel-x") {
             check_argc(argc, 4, 4);
-            dst_image = sobel_x(src_image);
+            dst_image = normalize(sobel_x(src_image));
         } else if (action == "--sobel-y") {
             check_argc(argc, 4, 4);
-            dst_image = sobel_y(src_image);
+            dst_image = normalize(sobel_y(src_image));
         } else if (action == "--unsharp") {
             check_argc(argc, 4, 4);
             dst_image = unsharp(src_image);
