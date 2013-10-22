@@ -9,6 +9,14 @@ static inline ValueType pow_2(ValueType val)
 	return val * val;
 }
 
+static int cmp(double l, double r)
+{
+	double tmp = l - r;
+	if (fabs(tmp) < 1e-9)
+		return 0;
+	return tmp > 0 ? 1 : -1;
+}
+
 Matrix<Monochrome> ImageToMonochrome(const Image &im)
 {
 	Matrix<Monochrome> result(im.n_rows, im.n_cols);
@@ -148,9 +156,9 @@ public:
 	template<typename InputType>
 	Monochrome operator()(const InputType &im) const
 	{
-		if (im(0, 0) < t_min)
+		if (cmp(im(0, 0), t_min) <= 0)
 			return 0;
-		if (im(0, 0) > t_max)
+		if (cmp(im(0, 0), t_max) >= 0)
 			return 255;
 		return 128;
 	}
@@ -162,8 +170,8 @@ public:
 template <typename InputType>
 void hysteresis_bfs(InputType &abs_grad)
 {
-	const vector<int> di = {0, 0, 1, -1};
-	const vector<int> dj = {1, -1, 0, 0};
+	const vector<int> di = {-1, -1, 0, 1, 1, 1, 0, -1};
+	const vector<int> dj = {0, 1, 1, 1, 0, -1, -1, -1};
 	auto exist = [&](int i, int j){ return 0 <= i && i < abs_grad.n_rows && 0 <= j && j < abs_grad.n_cols;};
 	vector<vector<char>> visited(abs_grad.n_rows, vector<char>(abs_grad.n_cols, 0));
 	for (int i = 0; i < abs_grad.n_rows; ++i)
@@ -177,7 +185,7 @@ void hysteresis_bfs(InputType &abs_grad)
 					int ti = Q.front().first;
 					int tj = Q.front().second;
 					Q.pop();
-					for (int k = 0; k < 4; ++k) {
+					for (int k = 0; k < 8; ++k) {
 						int ni = ti + di[k];
 						int nj = tj + dj[k];
 						if (
@@ -308,7 +316,7 @@ Image canny(const Image &im, int threshold1, int threshold2)
 	auto treshold_functor = TreshholdFunctor(threshold1, threshold2);
 	abs_grad = abs_grad.unary_map(treshold_functor);
 
-	hysteresis_dsu(abs_grad);
+	hysteresis_bfs(abs_grad);
 
 	auto result = MonochromeToImage(normalize(abs_grad));
 	return result;
@@ -444,14 +452,6 @@ Image align(const Image &image, const string &postprocessing, double fraction)
 	else if (postprocessing == "--autocontrast")
 		result = autocontrast(result, fraction);
 	return result;
-}
-
-static int cmp(double l, double r)
-{
-	double tmp = l - r;
-	if (fabs(tmp) < 1e-9)
-		return 0;
-	return tmp > 0 ? l : r;
 }
 
 Image gray_world(const Image &im)

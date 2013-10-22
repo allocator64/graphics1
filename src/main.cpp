@@ -129,6 +129,8 @@ Matrix<double> parse_kernel(string s)
         throw string("Empty argument");
     if (last != VALUE)
         throw string("Must ends with value");
+    if (v.size() % 2 == 0 || v.back().size() % 2 == 0)
+        throw string("Sides must be odd");
 
     Matrix<double> kernel(v.size(), v.back().size());
     for (int i = 0; i < kernel.n_rows; ++i)
@@ -204,7 +206,7 @@ int main(int argc, char **argv)
                 dst_image = gaussian_separable(src_image, sigma, radius);
             }
         } else if (action == "--canny") {
-            check_argc(6, 6);
+            check_argc(argc, 6, 6);
             int threshold1 = read_value<int>(argv[4]);
             check_number("threshold1", threshold1, 0, 360);
             int threshold2 = read_value<int>(argv[5]);
