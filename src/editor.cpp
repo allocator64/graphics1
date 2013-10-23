@@ -12,7 +12,7 @@ static inline ValueType pow_2(ValueType val)
 static int cmp(double l, double r)
 {
 	double tmp = l - r;
-	if (fabs(tmp) < 1e-9)
+	if (fabs(tmp) < 1e-5)
 		return 0;
 	return tmp > 0 ? 1 : -1;
 }
@@ -493,49 +493,51 @@ Image unsharp(const Image &im)
 class ContrastFunctor
 {
 public:
-	ContrastFunctor(int f)
-		:threshold(f),
-		 hyst(256, 0)
+	ContrastFunctor(int area, double f)
+		:n(area),
+		 low(area * f),
+		 hi(area - low),
+		 hyst()
 	{}
 	
-	RGB operator()(const Image &im)
+	RGB operator()(const Image &im) const
 	{
-		int k = Y(
+		hyst.push_back(Y(
 			get<0>(im(0,0)),
 			get<1>(im(0,0)),
 			get<2>(im(0,0))
-		);
-		hyst[k]++;
+		));
 		return im(0, 0);
 	}
 	
-	static Monochrome Y(Monochrome R, Monochrome G, Monochrome B)
+	static double Y(Monochrome R, Monochrome G, Monochrome B)
 	{
 		return R * 0.2125 + G * 0.7154 + B * 0.0721;
 	}
 
-	pair<int, int> get_limits() const
+	bool all_done() const
 	{
-		int low_sum = 0;
-		int i;
-		for (i = 0; i < 256 && low_sum < threshold; ++i)
-			low_sum += hyst[i];
-		int j;
-		int hi_sum = 0;
-		for (j = 255; j >= 0 && hi_sum < threshold; --j)
-			hi_sum += hyst[j];
-		return make_pair(i, j);
+		return !(1 <= hi && low < n && low <= hi);
+	}
+
+	pair<double, double> get_limits() const
+	{
+		if (low > hi || low >= n || hi < 0)
+			return make_pair(0, 0);
+		sort(hyst.begin(), hyst.end());
+		return make_pair(hyst[low], hyst[hi - 1]);
 	}
 	
-	double threshold;
-	vector<int> hyst;
+	int n;
+	int low, hi;
+	mutable vector<double> hyst;
 	static const int radius = 0;
 };
 
 class StretchHyst
 {
 public:
-	StretchHyst(int t1, int t2)
+	StretchHyst(double t1, double t2)
 		:threshold1(t1),
 		 threshold2(t2)
 	{}
@@ -548,16 +550,19 @@ public:
 			(get<2>(im(0, 0)) - threshold1) * 255 / (threshold2 - threshold1)
 		);
 	}
-	int threshold1;
-	int threshold2;
+	double threshold1;
+	double threshold2;
 	static const int radius = 0;
 };
 
 Image autocontrast(const Image &im, double fraction)
 {
-	auto contrast = ContrastFunctor(fraction * im.n_rows * im.n_cols);
+	auto contrast = ContrastFunctor(im.n_rows * im.n_cols, fraction);
 	auto result = im.unary_map(contrast);
 	auto limits = contrast.get_limits();
+	cerr << limits.first << " " << limits.second << endl;
+	if (cmp(limits.first, limits.second) == 0)
+		return im;
 	auto strech_hyst = StretchHyst(limits.first, limits.second);
 	return normalize(result.unary_map(strech_hyst)); 
 }
