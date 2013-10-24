@@ -64,16 +64,52 @@ Image gaussian_separable(const Image &im, double sigma, int radius)
 	int n = radius * 2 + 1;
 	Matrix<double> kernel_col(n, 1);
 	Matrix<double> kernel_row(1, n);
-	double sum = 0;
+	double s = 0;
 	for (int i = 0; i < n; ++i) {
 		kernel_col(i, 0) = kernel_row(0, i) = k * exp(d * (pow_2(i - radius)));
-		sum += kernel_col(i, 0);
+		s += kernel_col(i, 0);
 	}
 	for (int i = 0; i < n; ++i) {
-		kernel_col(i, 0) /= sum;
-		kernel_row(0, i) /= sum;
+		kernel_col(i, 0) /= s;
+		kernel_row(0, i) /= s;
 	}
-	return custom(custom(im, kernel_col), kernel_row);
+
+
+	// vertical - kernel_col
+	Image tmp(im.n_rows, im.n_cols);
+	for (int i = radius; i < im.n_rows - radius; ++i)
+		for (int j = 0; j < im.n_cols; ++j) {
+			tuple<double, double, double> sum;
+			for (int l = 0; l < n; ++l) {
+				auto tmp3 = kernel_col(l, 0) * im(i - radius + l, j);
+				sum = sum + tmp3;
+			}
+
+			tmp(i, j) = RGB(
+				round(get<0>(sum)),
+				round(get<1>(sum)),
+				round(get<2>(sum))
+			);
+		}
+
+	// horisontal - kernel_row
+	Image tmp2(im.n_rows, im.n_cols);
+	for (int i = 0; i < im.n_rows; ++i)
+		for (int j = radius; j < im.n_cols - radius; ++j) {
+			tuple<double, double, double> sum;
+			for (int l = 0; l < n; ++l) {
+				auto tmp3 = kernel_row(0, l) * tmp(i, j - radius + l);
+				sum = sum + tmp3;
+			}
+
+			tmp2(i, j) = RGB(
+				round(get<0>(sum)),
+				round(get<1>(sum)),
+				round(get<2>(sum))
+			);
+		}
+
+	return tmp2;
 }
 
 Image sobel_x(const Image &im)
