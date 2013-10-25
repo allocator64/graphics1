@@ -138,7 +138,7 @@ public:
 	template<typename InputType>
 	Monochrome operator()(const InputType &left, const InputType &right) const
 	{
-		return pow(pow_2(left(0, 0)) + pow_2(right(0, 0)), 0.5);
+		return sqrt(pow_2(left(0, 0)) + pow_2(right(0, 0)));
 	}
 	static const int radius = 0;
 };
@@ -180,8 +180,8 @@ private:
 static const double pp = M_PI / 8;
 const vector<double> SuppressionFunctor::mas = {-7*pp, -5*pp, -3*pp, -pp, pp, 3*pp, 5*pp, 7*pp, 8*pp};
 const vector<int> SuppressionFunctor::num    = {   4,    5,    6,  7, 0,   1,   2,   3,   4};
-const vector<int> SuppressionFunctor::di = {-1, -1, 0, 1, 1, 1, 0, -1};
-const vector<int> SuppressionFunctor::dj = {0, 1, 1, 1, 0, -1, -1, -1};
+const vector<int> SuppressionFunctor::dj = {-1, -1, 0, 1, 1, 1, 0, -1};
+const vector<int> SuppressionFunctor::di = {0, 1, 1, 1, 0, -1, -1, -1};
 
 class TreshholdFunctor
 {
@@ -336,18 +336,34 @@ void hysteresis_dsu(InputType &abs_grad)
 
 Image canny(const Image &im, int threshold1, int threshold2)
 {
-	auto blured = gaussian_separable(im, 1.4, 5);
+	auto blured = gaussian_separable(im, 1.4, 2);
+
 	auto derivative_x = ImageToMonochrome(sobel_x(blured));
 	auto derivative_y = ImageToMonochrome(sobel_y(blured));
 
 	auto abs_grad_functor = AbsGradientFunctor();
 	auto abs_grad = binary_map(abs_grad_functor, derivative_x, derivative_y);
 
-	auto direct_grad_functor = DirectGradientFunctor();
-	auto direct_grad = binary_map(direct_grad_functor, derivative_x, derivative_y);
+	const int di[] = {1, 0, 1, 1};
+	const int dj[] = {0, 1, 1, -1};
 
-	auto suppression_functor = SuppressionFunctor();
-	abs_grad = binary_map(suppression_functor, abs_grad, direct_grad);
+	MonochromeImage new_grad(abs_grad.n_rows, abs_grad.n_cols);
+	for (int i = 1; i < abs_grad.n_rows - 1; ++i)
+		for (int j = 1; j < abs_grad.n_cols - 1; ++j) {
+			int x = derivative_x(i, j);
+			int y = derivative_y(i, j);
+			int k = 3;
+			if (100000 * abs(x) < 41421 * abs(y))
+				k = 0;
+			else if (100000 * abs(y) < 41421 * abs(x))
+				k = 1;
+			else if ((x < 0 && y > 0) || (x > 0 && y < 0))
+				k = 2;
+			new_grad(i, j) = abs_grad(i, j) *(
+				abs_grad(i + di[k], j + dj[k]) <= abs_grad(i, j) &&
+				abs_grad(i - di[k], j - dj[k]) <  abs_grad(i, j));
+		}
+	abs_grad = new_grad;
 
 	auto treshold_functor = TreshholdFunctor(threshold1, threshold2);
 	abs_grad = abs_grad.unary_map(treshold_functor);
