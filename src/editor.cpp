@@ -189,12 +189,12 @@ public:
 	TreshholdFunctor(int min_, int max_)
 		: t_min(min_), t_max(max_)
 	{}
-	template<typename InputType>
-	Monochrome operator()(const InputType &im) const
+
+	Monochrome operator()(const MonochromeImage &im) const
 	{
-		if (cmp(im(0, 0), t_min) <= 0)
+		if (im(0, 0) < t_min)
 			return 0;
-		if (cmp(im(0, 0), t_max) >= 0)
+		if (im(0, 0) >= t_max)
 			return 255;
 		return 128;
 	}
