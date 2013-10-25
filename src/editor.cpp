@@ -502,16 +502,13 @@ Image gray_world(const Image &im)
 			Sg += get<1>(im(i, j));
 			Sb += get<2>(im(i, j));
 		}
-	Sr /= im.n_rows * im.n_cols;
-	Sg /= im.n_rows * im.n_cols;
-	Sb /= im.n_rows * im.n_cols;
 	double s = (Sr + Sg + Sb) / 3;
 	for (int i = 0; i < im.n_rows; ++i)
 		for (int j = 0; j < im.n_cols; ++j)
 			result(i, j) = RGB(
-				cmp(Sr, 0) ? s * get<0>(im(i, j)) / Sr : 0,
-				cmp(Sg, 0) ? s * get<1>(im(i, j)) / Sg : 0,
-				cmp(Sb, 0) ? s * get<2>(im(i, j)) / Sb : 0
+				round(cmp(Sr, 0) ? (s * get<0>(im(i, j)) / Sr) : (s / im.n_rows / im.n_cols)),
+				round(cmp(Sg, 0) ? (s * get<1>(im(i, j)) / Sg) : (s / im.n_rows / im.n_cols)),
+				round(cmp(Sb, 0) ? (s * get<2>(im(i, j)) / Sb) : (s / im.n_rows / im.n_cols))
 			);
 	return normalize(result);
 }

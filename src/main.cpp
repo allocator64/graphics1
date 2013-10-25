@@ -235,6 +235,24 @@ int main(int argc, char **argv)
             } else {
                 dst_image = align(src_image);
             }
+        } else if (action == "--fill") {
+            check_argc(argc, 7, 7);
+            RGB pix(
+                read_value<int>(argv[4]),
+                read_value<int>(argv[5]),
+                read_value<int>(argv[6])
+            );
+            int n = 100;
+            dst_image = Image(n, n);
+            for (int i = 0; i < n; ++i)
+                for (int j = 0; j < n; ++j)
+                    dst_image(i, j) = pix;
+        } else if (action == "--center") {
+            check_argc(argc, 4, 4);
+            int r, g, b;
+            tie(r, g, b) = src_image(src_image.n_rows / 2, src_image.n_cols / 2);
+            cout << r << " " << g << " " << b << endl;
+            return 0;
         } else {
             throw string("unknown action ") + action;
         }
