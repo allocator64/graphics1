@@ -192,7 +192,7 @@ public:
 
 	Monochrome operator()(const MonochromeImage &im) const
 	{
-		if (im(0, 0) < t_min)
+		if (im(0, 0) <= t_min)
 			return 0;
 		if (im(0, 0) >= t_max)
 			return 255;
